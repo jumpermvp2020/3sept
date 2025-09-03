@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useGameStore } from '@/lib/store'
 import { useSoundManager } from '@/lib/soundManager'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 
 interface CalendarPageProps {
     id: number
@@ -16,7 +16,7 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
     const { incrementClickedPages } = useGameStore()
     const [windowSize, setWindowSize] = useState({ width: 1200, height: 800 })
 
-    // Отслеживаем размер окна для адаптивности
+    // Отслеживаем размер окна для адаптивности с дебаунсом
     useEffect(() => {
         const updateSize = () => {
             setWindowSize({
@@ -26,11 +26,21 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
         }
 
         updateSize()
-        window.addEventListener('resize', updateSize)
-        return () => window.removeEventListener('resize', updateSize)
+
+        let timeoutId: NodeJS.Timeout
+        const debouncedUpdateSize = () => {
+            clearTimeout(timeoutId)
+            timeoutId = setTimeout(updateSize, 100)
+        }
+
+        window.addEventListener('resize', debouncedUpdateSize)
+        return () => {
+            window.removeEventListener('resize', debouncedUpdateSize)
+            clearTimeout(timeoutId)
+        }
     }, [])
 
-    const handleClick = () => {
+    const handleClick = useCallback(() => {
         // Получаем текущее количество кликнутых страниц ДО увеличения
         const currentClickedPages = useGameStore.getState().clickedPages
 
@@ -45,10 +55,10 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
 
         incrementClickedPages()
         onCollect()
-    }
+    }, [soundManager, incrementClickedPages, onCollect])
 
     // Функция для создания безопасных координат (в пределах экрана)
-    const getSafeCoordinates = (percentX: number, percentY: number) => {
+    const getSafeCoordinates = useCallback((percentX: number, percentY: number) => {
         const maxX = windowSize.width - 100 // Оставляем 100px от края
         const maxY = windowSize.height - 100
         const minX = 50
@@ -58,10 +68,10 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
             x: Math.min(Math.max(percentX, minX), maxX),
             y: Math.min(Math.max(percentY, minY), maxY)
         }
-    }
+    }, [windowSize])
 
     // Уникальные траектории для каждого из 10 листков (в процентах от экрана)
-    const getTrajectory = () => {
+    const trajectory = useMemo(() => {
         const trajectories = [
             // Листок 0: Круговая траектория в левом верхнем углу (максимально расширенная)
             {
@@ -116,9 +126,7 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
         ]
 
         return trajectories[id] || trajectories[0]
-    }
-
-    const trajectory = getTrajectory()
+    }, [id, getSafeCoordinates, windowSize])
 
     return (
         <motion.div
@@ -163,6 +171,7 @@ export const CalendarPage = ({ id, onCollect, speed, delay }: CalendarPageProps)
                 width={80}
                 height={80}
                 className="drop-shadow-lg"
+                priority={id < 3} // Приоритетная загрузка для первых 3 календарей
             />
         </motion.div>
     )

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { useGameStore } from '@/lib/store'
+import { useYandexMetrika } from '@/lib/yandexMetrika'
 import { CalendarPage } from '@/components/CalendarPage'
 import { GameProgress } from '@/components/GameProgress'
 import { ResetButton } from '@/components/ResetButton'
@@ -22,12 +23,31 @@ const isMobile = () => {
 // Главный параметр для контроля всей системы анимации
 const ANIMATION_MULTIPLIER = isMobile() ? 0.25 : 0.7 // Быстрее для мобильных, медленнее для ПК
 
+// ID счетчика Яндекс.Метрики (замените на ваш)
+const YANDEX_METRIKA_ID = 104007551
+
 export default function Game() {
-    const { isVictory, isGameStarted, startGame } = useGameStore()
+    const { isVictory, isGameStarted, startGame, clickedPages } = useGameStore()
     const [calendarPages, setCalendarPages] = useState<number[]>([])
     const [showFrog, setShowFrog] = useState(false)
     const [gameTime, setGameTime] = useState(0)
     const [showStartScreen, setShowStartScreen] = useState(true)
+    const [gameStartTime, setGameStartTime] = useState<number | null>(null)
+
+    // Инициализация Яндекс.Метрики
+    const metrika = useYandexMetrika(YANDEX_METRIKA_ID)
+
+    // Инициализация Яндекс.Метрики при загрузке компонента
+    useEffect(() => {
+        metrika.initMetrika({
+            id: YANDEX_METRIKA_ID,
+            defer: true,
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            webvisor: true
+        })
+    }, [metrika])
 
     // Инициализация игры
     useEffect(() => {
@@ -35,15 +55,20 @@ export default function Game() {
             const pages = Array.from({ length: 10 }, (_, i) => i)
             setCalendarPages(pages)
             startGame()
+            setGameStartTime(Date.now())
+            // Трекинг начала игры
+            metrika.trackGameStart()
         }
-    }, [isGameStarted, startGame, showStartScreen])
+    }, [isGameStarted, startGame, showStartScreen, metrika])
 
     // Обработка победы
     useEffect(() => {
         if (isVictory) {
             setShowFrog(true)
+            // Трекинг победы
+            metrika.trackGameVictory(gameTime, clickedPages)
         }
-    }, [isVictory])
+    }, [isVictory, gameTime, clickedPages, metrika])
 
     // Таймер игры
     useEffect(() => {
@@ -60,27 +85,36 @@ export default function Game() {
         }
     }, [isGameStarted, isVictory])
 
-    const handleStartGame = () => {
+    const handleStartGame = useCallback(() => {
         setShowStartScreen(false)
         setGameTime(0)
-    }
+        setGameStartTime(Date.now())
+    }, [])
 
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         setShowStartScreen(false)
         setGameTime(0)
         setCalendarPages(Array.from({ length: 10 }, (_, i) => i))
         setShowFrog(false)
+        setGameStartTime(Date.now())
         // Сбрасываем состояние игры в store
         const { resetGame } = useGameStore.getState()
         resetGame()
-    }
+        // Трекинг сброса игры
+        metrika.trackGameReset()
+    }, [metrika])
 
-    const handleCollectPage = (id: number) => {
+    const handleCollectPage = useCallback((id: number) => {
         setCalendarPages(prev => prev.filter(pageId => pageId !== id))
-    }
+        // Трекинг клика по календарю
+        if (gameStartTime) {
+            const timeFromStart = Math.floor((Date.now() - gameStartTime) / 1000)
+            metrika.trackCalendarClick(id, timeFromStart)
+        }
+    }, [metrika, gameStartTime])
 
-    // Скорости для каждого из 10 листков (в секундах)
-    const speeds = [
+    // Мемоизированные скорости для каждого из 10 листков (в секундах)
+    const speeds = useMemo(() => [
         3 * ANIMATION_MULTIPLIER,  // Быстрый
         5 * ANIMATION_MULTIPLIER,  // Средний
         2 * ANIMATION_MULTIPLIER,  // Очень быстрый
@@ -91,10 +125,10 @@ export default function Game() {
         3.5 * ANIMATION_MULTIPLIER, // Средний
         4.5 * ANIMATION_MULTIPLIER, // Средний
         5.5 * ANIMATION_MULTIPLIER  // Медленный
-    ]
+    ], [ANIMATION_MULTIPLIER])
 
-    // Задержки для каждого листка (в секундах)
-    const delays = [
+    // Мемоизированные задержки для каждого листка (в секундах)
+    const delays = useMemo(() => [
         0,
         0.5,
         1,
@@ -105,7 +139,7 @@ export default function Game() {
         3.5,
         4,
         4.5
-    ]
+    ], [])
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
@@ -132,6 +166,7 @@ export default function Game() {
                                 width={300}
                                 height={300}
                                 className="opacity-20"
+                                priority
                             />
                         </motion.div>
                     </div>
