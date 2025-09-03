@@ -19,7 +19,7 @@ export const BottomPanel = ({ isGameStarted, isVictory, gameTime, onReset }: Bot
 
             {/* Центральная часть - Таймер */}
             <div className="flex-1 flex justify-center">
-                <GameTimer isGameStarted={isGameStarted} isVictory={isVictory} gameTime={gameTime} />
+                <GameTimer isGameStarted={isGameStarted} gameTime={gameTime} />
             </div>
 
             {/* Правая часть - Сброс */}
