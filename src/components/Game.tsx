@@ -28,6 +28,7 @@ export default function Game() {
     const { isVictory, isGameStarted, startGame, clickedPages } = useGameStore()
     const [calendarPages, setCalendarPages] = useState<number[]>([])
     const [gameTime, setGameTime] = useState(0)
+    const [gameTimeMs, setGameTimeMs] = useState(0)
     const [showStartScreen, setShowStartScreen] = useState(true)
     const [gameStartTime, setGameStartTime] = useState<number | null>(null)
 
@@ -60,28 +61,6 @@ export default function Game() {
         }
     }, [isGameStarted, startGame, showStartScreen, metrika, analytics])
 
-    // Обработка URL параметров для шаринга
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const urlParams = new URLSearchParams(window.location.search)
-            const sharedResult = urlParams.get('result')
-            const isShared = urlParams.get('shared')
-            
-            if (sharedResult && isShared === 'true') {
-                // Показываем уведомление о том, что игра была пройдена
-                setTimeout(() => {
-                    alert(`🎉 Кто-то поделился результатом игры!\n\n${sharedResult}\n\nПопробуй пройти игру сам!`)
-                }, 1000)
-                
-                // Очищаем URL параметры
-                const newUrl = new URL(window.location.href)
-                newUrl.searchParams.delete('result')
-                newUrl.searchParams.delete('shared')
-                window.history.replaceState({}, '', newUrl.toString())
-            }
-        }
-    }, [])
-
     // Обработка победы
     useEffect(() => {
         if (isVictory) {
@@ -97,24 +76,29 @@ export default function Game() {
 
         if (isGameStarted && !isVictory) {
             interval = setInterval(() => {
-                setGameTime(prev => prev + 1)
-            }, 1000)
+                const currentTime = Date.now()
+                const elapsedMs = gameStartTime ? currentTime - gameStartTime : 0
+                setGameTimeMs(elapsedMs)
+                setGameTime(Math.floor(elapsedMs / 1000))
+            }, 16) // ~60 FPS для плавного обновления
         }
 
         return () => {
             if (interval) clearInterval(interval)
         }
-    }, [isGameStarted, isVictory])
+    }, [isGameStarted, isVictory, gameStartTime])
 
     const handleStartGame = useCallback(() => {
         setShowStartScreen(false)
         setGameTime(0)
+        setGameTimeMs(0)
         setGameStartTime(Date.now())
     }, [])
 
     const handleReset = useCallback(() => {
         setShowStartScreen(false)
         setGameTime(0)
+        setGameTimeMs(0)
         setCalendarPages(Array.from({ length: 10 }, (_, i) => i))
         setGameStartTime(Date.now())
         // Сбрасываем состояние игры в store
@@ -222,6 +206,7 @@ export default function Game() {
                         isGameStarted={isGameStarted}
                         // isVictory={isVictory}
                         gameTime={gameTime}
+                        gameTimeMs={gameTimeMs}
                         onReset={handleReset}
                     />
 
@@ -229,6 +214,7 @@ export default function Game() {
                     <VictoryScreen
                         isVisible={isVictory}
                         gameTime={gameTime}
+                        gameTimeMs={gameTimeMs}
                         onPlayAgain={() => {
                             handleReset()
                             setShowStartScreen(true)

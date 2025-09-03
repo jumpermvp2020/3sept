@@ -11,10 +11,11 @@ import { Howl } from 'howler'
 interface VictoryScreenProps {
     isVisible: boolean
     gameTime?: number
+    gameTimeMs?: number
     onPlayAgain?: () => void
 }
 
-export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryScreenProps) => {
+export const VictoryScreen = ({ isVisible, gameTime = 0, gameTimeMs = 0, onPlayAgain }: VictoryScreenProps) => {
     const { width, height } = useWindowSize()
     const [copied, setCopied] = useState(false)
     const soundManager = useSoundManager()
@@ -24,10 +25,11 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
     const frogSoundRef = useRef<Howl | null>(null)
     const musicSoundRef = useRef<Howl | null>(null)
 
-    const formatTime = (seconds: number) => {
+    const formatTime = (seconds: number, milliseconds?: number) => {
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        const ms = milliseconds ? Math.floor((milliseconds % 1000) / 10) : 0
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`
     }
 
     // Инициализация звуков VictoryScreen
@@ -78,7 +80,7 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
     const handleShare = async () => {
         // Создаем URL с параметрами для лучшего шаринга
         const shareUrl = new URL(window.location.href)
-        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime)}`)
+        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime, gameTimeMs)}`)
         shareUrl.searchParams.set('shared', 'true')
 
         // Определяем, возможно ли это Telegram (по user agent)
@@ -87,32 +89,11 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
             window.location.href.includes('t.me')
 
         // Для Telegram лучше работает, если URL находится в тексте
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}\n\n📸 Игра с красивыми картинками!`
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime, gameTimeMs)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
 
         // Проверяем поддержку Web Share API
         if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
             try {
-                // Пробуем поделиться с изображением (если поддерживается)
-                try {
-                    const imageUrl = `${window.location.origin}/out.png`
-                    const response = await fetch(imageUrl)
-                    const blob = await response.blob()
-                    const file = new File([blob], '3sept-result.png', { type: 'image/png' })
-
-                    const shareDataWithImage = {
-                        title: '3 сентября - Игра пройдена!',
-                        text: shareText,
-                        files: [file]
-                    }
-
-                    if (navigator.canShare(shareDataWithImage)) {
-                        await navigator.share(shareDataWithImage)
-                        return
-                    }
-                } catch (imageError) {
-                    console.log('Не удалось загрузить изображение для шаринга:', imageError)
-                }
-
                 // Для Telegram и других мессенджеров лучше работает только текст с URL внутри
                 const shareDataText = {
                     title: '3 сентября - Игра пройдена!',
@@ -121,17 +102,6 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
 
                 if (navigator.canShare(shareDataText)) {
                     await navigator.share(shareDataText)
-                    return
-                }
-
-                // Fallback: пробуем только с URL (может лучше работать в Telegram)
-                const shareDataUrlOnly = {
-                    title: '3 сентября - Игра пройдена!',
-                    url: shareUrl.toString()
-                }
-
-                if (navigator.canShare(shareDataUrlOnly)) {
-                    await navigator.share(shareDataUrlOnly)
                     return
                 }
 
@@ -170,11 +140,11 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
     const handleCopyLink = async () => {
         // Создаем URL с параметрами для лучшего шаринга
         const shareUrl = new URL(window.location.href)
-        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime)}`)
+        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime, gameTimeMs)}`)
         shareUrl.searchParams.set('shared', 'true')
 
         // Для Telegram лучше работает, если URL находится в тексте
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}\n\n📸 Игра с красивыми картинками!`
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime, gameTimeMs)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
 
         try {
             // Пробуем использовать современный Clipboard API
@@ -436,7 +406,7 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
                         Время прохождения:
                     </p>
                     <p className="text-xl font-bold text-blue-600">
-                        {formatTime(gameTime)}
+                        {formatTime(gameTime, gameTimeMs)}
                     </p>
                 </motion.div>
 

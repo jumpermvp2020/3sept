@@ -5,10 +5,11 @@ import { GameTimer } from '@/components/GameTimer'
 interface BottomPanelProps {
     isGameStarted: boolean
     gameTime: number
+    gameTimeMs?: number
     onReset?: () => void
 }
 
-export const BottomPanel = ({ isGameStarted, gameTime, onReset }: BottomPanelProps) => {
+export const BottomPanel = ({ isGameStarted, gameTime, gameTimeMs = 0, onReset }: BottomPanelProps) => {
     return (
         <div className="fixed bottom-4 left-0 right-0 z-20 flex items-center justify-between px-4">
             {/* Левая часть - Правила */}
@@ -18,7 +19,7 @@ export const BottomPanel = ({ isGameStarted, gameTime, onReset }: BottomPanelPro
 
             {/* Центральная часть - Таймер */}
             <div className="flex-1 flex justify-center">
-                <GameTimer isGameStarted={isGameStarted} gameTime={gameTime} />
+                <GameTimer isGameStarted={isGameStarted} gameTime={gameTime} gameTimeMs={gameTimeMs} />
             </div>
 
             {/* Правая часть - Сброс */}
