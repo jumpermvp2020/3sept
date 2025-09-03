@@ -1,56 +1,68 @@
+# === Базовый образ с Node.js ===
 FROM node:18-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
+
+# === Установка зависимостей ===
+FROM base AS deps
 WORKDIR /app
 
-# Install pnpm
+# Устанавливаем pnpm глобально
 RUN npm install -g pnpm
 
-# Install dependencies based on the preferred package manager
+# Копируем файлы для установки зависимостей
 COPY package.json pnpm-lock.yaml* ./
+
+# Устанавливаем зависимости (кешируется при неизменных package.json)
 RUN pnpm install --frozen-lockfile
 
-# Rebuild the source code only when needed
+# === Сборка приложения ===
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
-# Install pnpm
+# Устанавливаем pnpm
 RUN npm install -g pnpm
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
+# Копируем зависимости из предыдущего этапа
+COPY --from=deps /app/node_modules ./node_modules
+
+# Копируем исходный код
+COPY . .
+
+# Отключаем телеметрию Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Собираем статические файлы (next build с output: "export")
 RUN pnpm build
 
-# Production image, copy all the files and run next
+# === Продакшн образ ===
 FROM base AS runner
 WORKDIR /app
 
+# Настройки окружения
 ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Создаем пользователя для безопасности
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the static export
-COPY --from=builder /app/out ./out
+# Копируем статические файлы из builder этапа
+COPY --from=builder --chown=nextjs:nodejs /app/out ./out
 
-# Install serve to serve static files
+# Устанавливаем serve для раздачи статических файлов
 RUN npm install -g serve
 
+# Переключаемся на непривилегированного пользователя
 USER nextjs
 
+# Открываем порт
 EXPOSE 3000
-
 ENV PORT 3000
 
-# Serve the static files
-CMD ["serve", "-s", "out", "-l", "3000"]
+# Healthcheck для мониторинга
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# Запускаем сервер для статических файлов
+# Опции: -s (spa mode), -l (listen on port), --cors (enable CORS)
+CMD ["serve", "-s", "out", "-l", "3000", "--cors"]

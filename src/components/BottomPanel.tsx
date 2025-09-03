@@ -4,12 +4,11 @@ import { GameTimer } from '@/components/GameTimer'
 
 interface BottomPanelProps {
     isGameStarted: boolean
-    isVictory: boolean
     gameTime: number
     onReset?: () => void
 }
 
-export const BottomPanel = ({ isGameStarted, isVictory, gameTime, onReset }: BottomPanelProps) => {
+export const BottomPanel = ({ isGameStarted, gameTime, onReset }: BottomPanelProps) => {
     return (
         <div className="fixed bottom-4 left-0 right-0 z-20 flex items-center justify-between px-4">
             {/* Левая часть - Правила */}

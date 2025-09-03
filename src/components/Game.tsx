@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { useGameStore } from '@/lib/store'
 import { useYandexMetrika } from '@/lib/yandexMetrika'
+import { useGoogleAnalytics } from '@/lib/googleAnalytics'
 import { CalendarPage } from '@/components/CalendarPage'
 import { GameProgress } from '@/components/GameProgress'
 import { VictoryScreen } from '@/components/VictoryScreen'
@@ -32,6 +33,7 @@ export default function Game() {
 
     // Инициализация Яндекс.Метрики
     const metrika = useYandexMetrika(YANDEX_METRIKA_ID)
+    const analytics = useGoogleAnalytics()
 
     // Инициализация Яндекс.Метрики при загрузке компонента
     useEffect(() => {
@@ -54,16 +56,18 @@ export default function Game() {
             setGameStartTime(Date.now())
             // Трекинг начала игры
             metrika.trackGameStart()
+            analytics.trackGameStart()
         }
-    }, [isGameStarted, startGame, showStartScreen, metrika])
+    }, [isGameStarted, startGame, showStartScreen, metrika, analytics])
 
     // Обработка победы
     useEffect(() => {
         if (isVictory) {
             // Трекинг победы
             metrika.trackGameVictory(gameTime, clickedPages)
+            analytics.trackGameVictory(gameTime, clickedPages)
         }
-    }, [isVictory, gameTime, clickedPages, metrika])
+    }, [isVictory, gameTime, clickedPages, metrika, analytics])
 
     // Таймер игры
     useEffect(() => {
@@ -96,7 +100,8 @@ export default function Game() {
         resetGame()
         // Трекинг сброса игры
         metrika.trackGameReset()
-    }, [metrika])
+        analytics.trackGameReset()
+    }, [metrika, analytics])
 
     const handleCollectPage = useCallback((id: number) => {
         setCalendarPages(prev => prev.filter(pageId => pageId !== id))
@@ -104,8 +109,9 @@ export default function Game() {
         if (gameStartTime) {
             const timeFromStart = Math.floor((Date.now() - gameStartTime) / 1000)
             metrika.trackCalendarClick(id, timeFromStart)
+            analytics.trackCalendarClick(id, timeFromStart)
         }
-    }, [metrika, gameStartTime])
+    }, [metrika, analytics, gameStartTime])
 
     // Мемоизированные скорости для каждого из 10 листков (в секундах)
     const speeds = useMemo(() => [
@@ -192,7 +198,7 @@ export default function Game() {
                     <GameProgress />
                     <BottomPanel
                         isGameStarted={isGameStarted}
-                        isVictory={isVictory}
+                        // isVictory={isVictory}
                         gameTime={gameTime}
                         onReset={handleReset}
                     />

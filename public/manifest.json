@@ -1,0 +1,27 @@
+{
+    "name": "3 сентября - Игра по мотивам песни Шафутинского",
+    "short_name": "3 сентября",
+    "description": "Увлекательная онлайн игра по мотивам песни Михаила Шафутинского '3 сентября'. Лови летающие листки календаря!",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#3b82f6",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "32x32",
+            "type": "image/x-icon"
+        },
+        {
+            "src": "/out.png",
+            "sizes": "1200x630",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "games",
+        "entertainment"
+    ],
+    "lang": "ru",
+    "dir": "ltr"
+}
