@@ -60,6 +60,28 @@ export default function Game() {
         }
     }, [isGameStarted, startGame, showStartScreen, metrika, analytics])
 
+    // Обработка URL параметров для шаринга
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search)
+            const sharedResult = urlParams.get('result')
+            const isShared = urlParams.get('shared')
+            
+            if (sharedResult && isShared === 'true') {
+                // Показываем уведомление о том, что игра была пройдена
+                setTimeout(() => {
+                    alert(`🎉 Кто-то поделился результатом игры!\n\n${sharedResult}\n\nПопробуй пройти игру сам!`)
+                }, 1000)
+                
+                // Очищаем URL параметры
+                const newUrl = new URL(window.location.href)
+                newUrl.searchParams.delete('result')
+                newUrl.searchParams.delete('shared')
+                window.history.replaceState({}, '', newUrl.toString())
+            }
+        }
+    }, [])
+
     // Обработка победы
     useEffect(() => {
         if (isVictory) {

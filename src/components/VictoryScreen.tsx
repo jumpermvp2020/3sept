@@ -76,21 +76,53 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
     }
 
     const handleShare = async () => {
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${window.location.href}`
-        const shareUrl = window.location.href
+        // Создаем URL с параметрами для лучшего шаринга
+        const shareUrl = new URL(window.location.href)
+        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime)}`)
+        shareUrl.searchParams.set('shared', 'true')
+
+        // Определяем, возможно ли это Telegram (по user agent)
+        const isTelegram = navigator.userAgent.includes('Telegram') ||
+            navigator.userAgent.includes('tgweb') ||
+            window.location.href.includes('t.me')
+
+        // Для Telegram лучше работает, если URL находится в тексте
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
 
         // Проверяем поддержку Web Share API
         if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
             try {
-                // Проверяем, можем ли мы поделиться этим контентом
-                const shareData = {
+                // Для Telegram и других мессенджеров лучше работает только текст с URL внутри
+                const shareDataText = {
                     title: '3 сентября - Игра пройдена!',
-                    text: shareText,
-                    url: shareUrl
+                    text: shareText
                 }
 
-                if (navigator.canShare(shareData)) {
-                    await navigator.share(shareData)
+                if (navigator.canShare(shareDataText)) {
+                    await navigator.share(shareDataText)
+                    return
+                }
+
+                // Fallback: пробуем только с URL (может лучше работать в Telegram)
+                const shareDataUrlOnly = {
+                    title: '3 сентября - Игра пройдена!',
+                    url: shareUrl.toString()
+                }
+
+                if (navigator.canShare(shareDataUrlOnly)) {
+                    await navigator.share(shareDataUrlOnly)
+                    return
+                }
+
+                // Fallback: пробуем с URL отдельно
+                const shareDataWithUrl = {
+                    title: '3 сентября - Игра пройдена!',
+                    text: shareText,
+                    url: shareUrl.toString()
+                }
+
+                if (navigator.canShare(shareDataWithUrl)) {
+                    await navigator.share(shareDataWithUrl)
                     return
                 }
             } catch (error) {
@@ -115,7 +147,13 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
     }
 
     const handleCopyLink = async () => {
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${window.location.href}`
+        // Создаем URL с параметрами для лучшего шаринга
+        const shareUrl = new URL(window.location.href)
+        shareUrl.searchParams.set('result', `Время: ${formatTime(gameTime)}`)
+        shareUrl.searchParams.set('shared', 'true')
+
+        // Для Telegram лучше работает, если URL находится в тексте
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
 
         try {
             // Пробуем использовать современный Clipboard API
@@ -133,7 +171,7 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
                 document.body.appendChild(textArea)
                 textArea.focus()
                 textArea.select()
-                
+
                 try {
                     document.execCommand('copy')
                     setCopied(true)
