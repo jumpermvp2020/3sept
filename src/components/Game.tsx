@@ -7,11 +7,8 @@ import { useGameStore } from '@/lib/store'
 import { useYandexMetrika } from '@/lib/yandexMetrika'
 import { CalendarPage } from '@/components/CalendarPage'
 import { GameProgress } from '@/components/GameProgress'
-import { ResetButton } from '@/components/ResetButton'
-import { RulesDialog } from '@/components/RulesDialog'
 import { VictoryScreen } from '@/components/VictoryScreen'
 import { StartButton } from '@/components/StartButton'
-import { GameTimer } from '@/components/GameTimer'
 import { BottomPanel } from '@/components/BottomPanel'
 
 // Определение устройства и настройка скорости анимации
@@ -29,7 +26,6 @@ const YANDEX_METRIKA_ID = 104007551
 export default function Game() {
     const { isVictory, isGameStarted, startGame, clickedPages } = useGameStore()
     const [calendarPages, setCalendarPages] = useState<number[]>([])
-    const [showFrog, setShowFrog] = useState(false)
     const [gameTime, setGameTime] = useState(0)
     const [showStartScreen, setShowStartScreen] = useState(true)
     const [gameStartTime, setGameStartTime] = useState<number | null>(null)
@@ -64,7 +60,6 @@ export default function Game() {
     // Обработка победы
     useEffect(() => {
         if (isVictory) {
-            setShowFrog(true)
             // Трекинг победы
             metrika.trackGameVictory(gameTime, clickedPages)
         }
@@ -95,7 +90,6 @@ export default function Game() {
         setShowStartScreen(false)
         setGameTime(0)
         setCalendarPages(Array.from({ length: 10 }, (_, i) => i))
-        setShowFrog(false)
         setGameStartTime(Date.now())
         // Сбрасываем состояние игры в store
         const { resetGame } = useGameStore.getState()
@@ -125,7 +119,7 @@ export default function Game() {
         3.5 * ANIMATION_MULTIPLIER, // Средний
         4.5 * ANIMATION_MULTIPLIER, // Средний
         5.5 * ANIMATION_MULTIPLIER  // Медленный
-    ], [ANIMATION_MULTIPLIER])
+    ], [])
 
     // Мемоизированные задержки для каждого листка (в секундах)
     const delays = useMemo(() => [

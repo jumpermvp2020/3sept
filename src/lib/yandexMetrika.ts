@@ -1,11 +1,11 @@
-import { useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
 
 // Типы для Яндекс.Метрики
 declare global {
   interface Window {
-    ym: (counterId: number, method: string, ...args: any[]) => void
+    ym: (counterId: number, method: string, ...args: unknown[]) => void
     Ya: {
-      Metrika2: new (config: any) => any
+      Metrika2: new (config: MetrikaConfig) => unknown
     }
   }
 }
@@ -21,7 +21,7 @@ interface MetrikaConfig {
 
 interface GameEvent {
   name: string
-  params?: Record<string, any>
+  params?: Record<string, unknown>
 }
 
 export const useYandexMetrika = (counterId: number) => {
@@ -33,21 +33,21 @@ export const useYandexMetrika = (counterId: number) => {
   }, [counterId])
 
   // Отправка события достижения цели
-  const reachGoal = useCallback((goalName: string, params?: Record<string, any>) => {
+  const reachGoal = useCallback((goalName: string, params?: Record<string, unknown>) => {
     if (typeof window !== 'undefined' && window.ym) {
       window.ym(counterId, 'reachGoal', goalName, params)
     }
   }, [counterId])
 
   // Отправка параметров визита
-  const setParams = useCallback((params: Record<string, any>) => {
+  const setParams = useCallback((params: Record<string, unknown>) => {
     if (typeof window !== 'undefined' && window.ym) {
       window.ym(counterId, 'params', params)
     }
   }, [counterId])
 
   // Отправка пользовательских параметров
-  const setUserParams = useCallback((params: Record<string, any>) => {
+  const setUserParams = useCallback((params: Record<string, unknown>) => {
     if (typeof window !== 'undefined' && window.ym) {
       window.ym(counterId, 'userParams', params)
     }

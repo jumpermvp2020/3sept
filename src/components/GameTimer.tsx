@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
+import React from 'react'
 
 interface GameTimerProps {
     isGameStarted: boolean
-    isVictory: boolean
     gameTime: number
 }
 
-export const GameTimer = ({ isGameStarted, isVictory, gameTime }: GameTimerProps) => {
+export const GameTimer = ({ isGameStarted, gameTime }: GameTimerProps) => {
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
