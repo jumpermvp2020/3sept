@@ -79,31 +79,75 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
         const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${window.location.href}`
         const shareUrl = window.location.href
 
-        if (navigator.share) {
+        // Проверяем поддержку Web Share API
+        if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
             try {
-                await navigator.share({
-                    title: '3 сентября',
+                // Проверяем, можем ли мы поделиться этим контентом
+                const shareData = {
+                    title: '3 сентября - Игра пройдена!',
                     text: shareText,
                     url: shareUrl
-                })
+                }
+
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData)
+                    return
+                }
             } catch (error) {
                 console.log('Ошибка при попытке поделиться:', error)
+                // Если пользователь отменил шаринг, не показываем fallback
+                if (error instanceof Error && error.name === 'AbortError') {
+                    return
+                }
             }
-        } else {
-            // Fallback для браузеров без поддержки Web Share API
-            handleCopyLink()
         }
+
+        // Fallback для браузеров без поддержки Web Share API или при ошибке
+        // Проверяем, находимся ли мы на HTTPS
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            alert('Для функции "Поделиться" требуется HTTPS соединение. Используйте кнопку "Скопировать" для копирования ссылки.')
+            handleCopyLink()
+            return
+        }
+
+        // Если Web Share API недоступен, используем fallback
+        handleCopyLink()
     }
 
     const handleCopyLink = async () => {
         const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${window.location.href}`
 
         try {
-            await navigator.clipboard.writeText(shareText)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
+            // Пробуем использовать современный Clipboard API
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                await navigator.clipboard.writeText(shareText)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+            } else {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea')
+                textArea.value = shareText
+                textArea.style.position = 'fixed'
+                textArea.style.left = '-999999px'
+                textArea.style.top = '-999999px'
+                document.body.appendChild(textArea)
+                textArea.focus()
+                textArea.select()
+                
+                try {
+                    document.execCommand('copy')
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                } catch (err) {
+                    console.log('Ошибка при копировании:', err)
+                    alert('Не удалось скопировать ссылку. Попробуйте скопировать вручную:\n\n' + shareText)
+                } finally {
+                    document.body.removeChild(textArea)
+                }
+            }
         } catch (error) {
             console.log('Ошибка при копировании:', error)
+            alert('Не удалось скопировать ссылку. Попробуйте скопировать вручную:\n\n' + shareText)
         }
     }
 
@@ -347,9 +391,10 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
                         <Button
                             onClick={handleShare}
                             className="bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200"
+                            title={typeof navigator.share === 'function' ? "Поделиться через нативное меню" : "Скопировать ссылку"}
                         >
                             <Share2 className="w-4 h-4 mr-2" />
-                            Поделиться
+                            {typeof navigator.share === 'function' ? "Поделиться" : "Скопировать"}
                         </Button>
 
                         <Button
