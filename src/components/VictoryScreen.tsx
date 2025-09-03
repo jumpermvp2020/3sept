@@ -87,11 +87,32 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
             window.location.href.includes('t.me')
 
         // Для Telegram лучше работает, если URL находится в тексте
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}\n\n📸 Игра с красивыми картинками!`
 
         // Проверяем поддержку Web Share API
         if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
             try {
+                // Пробуем поделиться с изображением (если поддерживается)
+                try {
+                    const imageUrl = `${window.location.origin}/out.png`
+                    const response = await fetch(imageUrl)
+                    const blob = await response.blob()
+                    const file = new File([blob], '3sept-result.png', { type: 'image/png' })
+
+                    const shareDataWithImage = {
+                        title: '3 сентября - Игра пройдена!',
+                        text: shareText,
+                        files: [file]
+                    }
+
+                    if (navigator.canShare(shareDataWithImage)) {
+                        await navigator.share(shareDataWithImage)
+                        return
+                    }
+                } catch (imageError) {
+                    console.log('Не удалось загрузить изображение для шаринга:', imageError)
+                }
+
                 // Для Telegram и других мессенджеров лучше работает только текст с URL внутри
                 const shareDataText = {
                     title: '3 сентября - Игра пройдена!',
@@ -153,7 +174,7 @@ export const VictoryScreen = ({ isVisible, gameTime = 0, onPlayAgain }: VictoryS
         shareUrl.searchParams.set('shared', 'true')
 
         // Для Telegram лучше работает, если URL находится в тексте
-        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}`
+        const shareText = `🎉 Я прошел "3 сентября" за ${formatTime(gameTime)}! 🐸\n\nПопробуй сам: ${shareUrl.toString()}\n\n📸 Игра с красивыми картинками!`
 
         try {
             // Пробуем использовать современный Clipboard API
